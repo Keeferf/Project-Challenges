@@ -1,0 +1,12 @@
+body {
+  margin: 0;
+  overflow: hidden;
+  background: #f7f7f7;
+}
+
+#gameCanvas {
+  background: white;
+  display: block;
+  margin: 20px auto;
+  border: 1px solid #ccc;
+}
