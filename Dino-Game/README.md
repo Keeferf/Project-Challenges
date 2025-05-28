@@ -1,6 +1,6 @@
 # Dino Game (JavaScript Clone)
 
-A simple clonse of the **Chrome Dono Game** built with **HTML5 Canvas** and **JavaScript**.
+A simple clone of the **Chrome Dono Game** built with **HTML5 Canvas** and **JavaScript**.
 
 ![Game Preview]
 
@@ -17,5 +17,5 @@ A simple clonse of the **Chrome Dono Game** built with **HTML5 Canvas** and **Ja
 
 ## Contributions
 
-<a href="https://www.flaticon.com/free-icons/dinosaur" title="dinosaur icons">Dinosaur icons created by Freepik - Flaticon</a>
+<a href="https://www.flaticon.com/free-icons/dinosaur" title="dinosaur icons">Dinosaur icons created by Freepik - Flaticon</a>  
 <a href="https://www.flaticon.com/free-icons/cacti" title="cacti icons">Cacti icons created by Freepik - Flaticon</a>
