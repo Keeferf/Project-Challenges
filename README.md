@@ -1,2 +1,2 @@
-# 24-Hour-Challenge
-A collection of projects that I try to complete in 24 hours
+# Project-Challenges
+A collection of projects that I try to complete with recording my time spent on them
