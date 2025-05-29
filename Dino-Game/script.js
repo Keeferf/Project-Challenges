@@ -458,3 +458,18 @@ canvas.height = CANVAS_HEIGHT;
 
 setupInputHandlers();
 assets.loadAll(gameLoop);
+
+// assets.loadAll(() => {
+//   // Start the game loop
+//   gameLoop();
+
+//   // Take screenshot after short delay to ensure canvas is drawn
+//   setTimeout(() => {
+//     const canvas = document.getElementById("gameCanvas");
+//     const image = canvas.toDataURL("image/png");
+//     const link = document.createElement("a");
+//     link.download = "dino-startscreen.png";
+//     link.href = image;
+//     link.click();
+//   }, 1000); // delay 1 second to ensure start screen is visible
+// });

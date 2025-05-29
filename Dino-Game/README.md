@@ -1,12 +1,12 @@
 # Dino Game (JavaScript Clone)
 
-A simple clone of the **Chrome Dono Game** built with **HTML5 Canvas** and **JavaScript**.
+A simple clone of the **Chrome Dono Game** built with **HTML5 Canvas** and **JavaScript**, featuring animations, dynamic difficulty, and responsive controls.
 
-![Game Preview]
+![Game Preview](assets/dino-startscreen.png)
 
 ## Features
 
-- **Jump mechanics** (Press `Space` to jump).
+- **Game mechanics** (Press `Space` to jump & `Down Arrow` to duck).
 - **Random obstacles** (Speed increases over time).
 - **Score tracking** (Increases as you avoid obstacles and time passes).
 - **Collision detection** (Game ends on hit).
@@ -16,8 +16,8 @@ A simple clone of the **Chrome Dono Game** built with **HTML5 Canvas** and **Jav
 - 15:41.50
 - 2:45:36.60
 - 1:11:39.67
+- 45:27.00
 
-## Contributions
+## Asset Credits
 
-<a href="https://arks.digital/" title="dino sprites">Dino Character Sprites - arks.digital</a>  
-<a href="https://www.flaticon.com/free-icons/cacti" title="cacti icons">Cacti icons created by Freepik - Flaticon</a>
+- [Dino Character Sprites](https://arks.digital/) - arks.digital (Animation done by me)
