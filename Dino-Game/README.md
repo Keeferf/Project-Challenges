@@ -20,4 +20,4 @@ A simple clone of the **Chrome Dono Game** built with **HTML5 Canvas** and **Jav
 
 ## Asset Credits
 
-- [Dino Character Sprites](https://arks.digital/) - arks.digital (Animation done by me)
+- [Dino Character Sprites](https://arks.digital/) - arks.digital

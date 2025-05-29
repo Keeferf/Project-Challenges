@@ -1,9 +1,9 @@
 // === Constants ===
 const CANVAS_WIDTH = 768;
 const CANVAS_HEIGHT = 288;
-const GRAVITY = 0.15;
-const JUMP_FORCE = -7;
-const INITIAL_GAME_SPEED = 1.5;
+const GRAVITY = 0.08;
+const JUMP_FORCE = -9;
+const INITIAL_GAME_SPEED = 2;
 
 // === Game State ===
 const gameState = {
@@ -13,6 +13,8 @@ const gameState = {
   highScore: 0,
   spaceKeyReleased: true,
   downKeyPressed: false,
+  startTime: null,
+  lastSpeedIncrease: 0,
 };
 
 // === Asset Management ===
@@ -27,6 +29,7 @@ const assets = {
     farBgImg: { src: "assets/far-background.png", img: new Image() },
     closeBgImg: { src: "assets/close-background.png", img: new Image() },
     boxObstacleImg: { src: "assets/box-obstacle.png", img: new Image() },
+    logObstacleImg: { src: "assets/log-obstacle.png", img: new Image() },
   },
   loadAll: function (callback) {
     let loadedCount = 0;
@@ -50,7 +53,7 @@ const animations = {
     frameHeight: 51,
     spacing: 0,
     totalFrames: 4,
-    frameDelay: 16,
+    frameDelay: 20,
   },
   run: {
     sheet: assets.images.runSheet.img,
@@ -112,7 +115,11 @@ const dino = {
       this.isJumping = false;
       this.speedY = 0;
       this.jumpPeak = false;
-      this.currentAnim = gameState.downKeyPressed ? "duck" : "run";
+
+      // Only change animation if game is playing
+      if (gameState.current === "playing") {
+        this.currentAnim = gameState.downKeyPressed ? "duck" : "run";
+      }
     }
   },
 
@@ -205,25 +212,51 @@ const obstacles = {
     img: assets.images.boxObstacleImg.img,
     width: 33,
     height: 26,
+    hitbox: {
+      xOffset: 1,
+      yOffset: 1,
+      width: 31,
+      height: 24,
+    },
     minGap: 300,
     maxGap: 500,
+  },
+  log: {
+    img: assets.images.logObstacleImg.img,
+    width: 81,
+    height: 29,
+    hitbox: {
+      xOffset: 3,
+      yOffset: 2,
+      width: 75,
+      height: 25,
+    },
+    minGap: 400,
+    maxGap: 600,
   },
   active: [],
   timer: 0,
   nextTime: 0,
 
   generate: function () {
+    const availableTypes = gameState.speed >= 2.5 ? ["box", "log"] : ["box"];
+
+    const type =
+      availableTypes[Math.floor(Math.random() * availableTypes.length)];
+
     const obstacle = {
-      type: "box",
+      type: type,
       x: CANVAS_WIDTH,
-      y: CANVAS_HEIGHT - 32 - this.box.height,
-      width: this.box.width,
-      height: this.box.height,
+      y: CANVAS_HEIGHT - 32 - this[type].height,
+      width: this[type].width,
+      height: this[type].height,
       passed: false,
     };
+
     this.active.push(obstacle);
     this.nextTime =
-      Math.random() * (this.box.maxGap - this.box.minGap) + this.box.minGap;
+      Math.random() * (this[type].maxGap - this[type].minGap) +
+      this[type].minGap;
   },
 
   update: function () {
@@ -245,12 +278,6 @@ const obstacles = {
 
         if (!obstacle.passed && obstacle.x + obstacle.width < dino.x) {
           obstacle.passed = true;
-          gameState.score++;
-          gameState.highScore = Math.max(gameState.score, gameState.highScore);
-
-          if (gameState.score % 5 === 0) {
-            gameState.speed += 0.1;
-          }
         }
       });
     }
@@ -259,7 +286,7 @@ const obstacles = {
   draw: function (ctx) {
     this.active.forEach((obstacle) => {
       ctx.drawImage(
-        this.box.img,
+        this[obstacle.type].img,
         obstacle.x,
         obstacle.y,
         obstacle.width,
@@ -270,11 +297,17 @@ const obstacles = {
 
   checkCollisions: function () {
     this.active.forEach((obstacle) => {
+      const obstLeft = obstacle.x + this[obstacle.type].hitbox.xOffset;
+      const obstTop = obstacle.y + this[obstacle.type].hitbox.yOffset;
+      const obstRight = obstLeft + this[obstacle.type].hitbox.width;
+      const obstBottom = obstTop + this[obstacle.type].hitbox.height;
+
+      // Original dino collision check remains the same
       if (
-        dino.x < obstacle.x + obstacle.width &&
-        dino.x + dino.width > obstacle.x &&
-        dino.y < obstacle.y + obstacle.height &&
-        dino.y + dino.height > obstacle.y
+        dino.x < obstRight &&
+        dino.x + dino.width > obstLeft &&
+        dino.y < obstBottom &&
+        dino.y + dino.height > obstTop
       ) {
         gameOver();
       }
@@ -298,7 +331,7 @@ const screens = {
     ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     ctx.fillStyle = "#fff";
-    ctx.font = "30px 'Jersey 15'";
+    ctx.font = "32px 'Jersey 15'";
     ctx.textAlign = "center";
     ctx.fillText("GAME OVER", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 30);
     ctx.font = "24px 'Jersey 15'";
@@ -380,6 +413,7 @@ function resetGame() {
   gameState.current = "playing";
   gameState.speed = INITIAL_GAME_SPEED;
   gameState.score = 0;
+  gameState.startTime = Date.now();
   dino.currentAnim = "run";
 }
 
@@ -441,6 +475,26 @@ function gameLoop() {
 
   if (gameState.current === "playing") {
     obstacles.checkCollisions();
+    const elapsedSeconds = Math.floor(
+      (Date.now() - gameState.startTime) / 1000
+    );
+
+    // Only update score if it's changed
+    if (elapsedSeconds > gameState.score) {
+      gameState.score = elapsedSeconds;
+      gameState.highScore = Math.max(gameState.score, gameState.highScore);
+    }
+
+    // Increase speed every 10 seconds
+    if (gameState.score > 0 && gameState.score % 10 === 0) {
+      if (
+        !gameState.lastSpeedIncrease ||
+        gameState.lastSpeedIncrease < gameState.score
+      ) {
+        gameState.speed += 0.1;
+        gameState.lastSpeedIncrease = gameState.score;
+      }
+    }
   } else if (gameState.current === "start") {
     screens.start(ctx);
   } else if (gameState.current === "gameover") {
@@ -458,18 +512,3 @@ canvas.height = CANVAS_HEIGHT;
 
 setupInputHandlers();
 assets.loadAll(gameLoop);
-
-// assets.loadAll(() => {
-//   // Start the game loop
-//   gameLoop();
-
-//   // Take screenshot after short delay to ensure canvas is drawn
-//   setTimeout(() => {
-//     const canvas = document.getElementById("gameCanvas");
-//     const image = canvas.toDataURL("image/png");
-//     const link = document.createElement("a");
-//     link.download = "dino-startscreen.png";
-//     link.href = image;
-//     link.click();
-//   }, 1000); // delay 1 second to ensure start screen is visible
-// });
