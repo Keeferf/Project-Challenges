@@ -11,41 +11,41 @@ const JUMP_FORCE = -7;
 const INITIAL_GAME_SPEED = 2;
 
 // === Mobile Orientation ===
-const orientation = {
-  isPortrait: function () {
-    return window.innerHeight > window.innerWidth;
-  },
-  setupHandler: function () {
-    window.addEventListener("resize", this.checkOrientation.bind(this));
-    this.checkOrientation();
-  },
-  checkOrientation: function () {
-    if (IS_MOBILE) {
-      if (this.isPortrait()) {
-        document.body.classList.add("portrait");
-        document.body.classList.remove("landscape");
-        this.showOrientationWarning(true);
-      } else {
-        document.body.classList.add("landscape");
-        document.body.classList.remove("portrait");
-        this.showOrientationWarning(false);
-      }
-    }
-  },
-  showOrientationWarning: function (show) {
-    let warning = document.getElementById("orientation-warning");
-    if (!warning && show) {
-      warning = document.createElement("div");
-      warning.id = "orientation-warning";
-      warning.className = "force-landscape";
-      warning.innerHTML =
-        '<div class="landscape-warning">Please rotate your device to landscape mode to play</div>';
-      document.body.appendChild(warning);
-    } else if (warning && !show) {
-      warning.remove();
-    }
-  },
-};
+function isPortrait() {
+  if (window.screen.orientation) {
+    return window.screen.orientation.type.includes("portrait");
+  }
+  return window.innerHeight > window.innerWidth;
+}
+
+function showOrientationWarning(show) {
+  let warning = document.getElementById("orientation-warning");
+  if (!warning && show) {
+    warning = document.createElement("div");
+    warning.id = "orientation-warning";
+    warning.className = "force-landscape";
+    warning.innerHTML =
+      '<div class="landscape-warning">Please rotate your device to landscape mode to play</div>';
+    document.body.appendChild(warning);
+  } else if (warning && !show) {
+    warning.remove();
+  }
+}
+
+function checkOrientation() {
+  if (!IS_MOBILE) return;
+
+  if (isPortrait()) {
+    document.body.classList.add("portrait");
+    document.body.classList.remove("landscape");
+    showOrientationWarning(true);
+  } else {
+    document.body.classList.add("landscape");
+    document.body.classList.remove("portrait");
+    showOrientationWarning(false);
+  }
+  resizeCanvas();
+}
 
 // === Game State ===
 const gameState = {
@@ -141,7 +141,7 @@ const dino = {
   frameCount: 0,
   jumpPeak: false,
   normalHeight: 51,
-  duckHeight: 41,
+  duckHeight: 42,
   maxJumpHeight: 120,
 
   update: function () {
@@ -694,21 +694,11 @@ function gameLoop() {
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-// Replace your existing resizeCanvas function with this:
 function resizeCanvas() {
   const container = document.getElementById("game-container");
-  let containerWidth, containerHeight;
+  const containerWidth = container.clientWidth;
+  const containerHeight = container.clientHeight;
 
-  if (IS_MOBILE && orientation.isPortrait()) {
-    // Use screen dimensions in landscape even if we're in portrait
-    containerWidth = window.screen.height;
-    containerHeight = window.screen.width;
-  } else {
-    containerWidth = container.clientWidth;
-    containerHeight = container.clientHeight;
-  }
-
-  // Maintain aspect ratio
   const aspectRatio = CANVAS_WIDTH / CANVAS_HEIGHT;
   let newWidth = containerWidth;
   let newHeight = containerWidth / aspectRatio;
@@ -722,15 +712,33 @@ function resizeCanvas() {
   canvas.height = CANVAS_HEIGHT;
   canvas.style.width = `${newWidth}px`;
   canvas.style.height = `${newHeight}px`;
+
+  canvas.style.position = "absolute";
+  canvas.style.left = "50%";
+  canvas.style.top = "50%";
+  canvas.style.transform = "translate(-50%, -50%)";
 }
 
-// Replace your existing initialization code with this:
-window.addEventListener("resize", resizeCanvas);
-resizeCanvas();
-
-if (IS_MOBILE) {
-  orientation.setupHandler();
+// === Initialize Game ===
+function initGame() {
+  resizeCanvas();
+  if (IS_MOBILE) {
+    if (window.screen.orientation) {
+      window.screen.orientation.addEventListener("change", checkOrientation);
+    } else {
+      window.addEventListener("resize", () =>
+        setTimeout(checkOrientation, 100)
+      );
+    }
+    checkOrientation();
+  }
+  setupInputHandlers();
+  assets.loadAll(gameLoop);
 }
 
-setupInputHandlers();
-assets.loadAll(gameLoop);
+window.addEventListener("resize", () => {
+  resizeCanvas();
+  if (IS_MOBILE) checkOrientation();
+});
+
+initGame();
