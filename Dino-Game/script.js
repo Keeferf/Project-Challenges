@@ -1,8 +1,13 @@
 // === Constants ===
+const IS_MOBILE =
+  /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+    navigator.userAgent
+  );
+const MOBILE_JUMP_THRESHOLD = 5;
 const CANVAS_WIDTH = 768;
 const CANVAS_HEIGHT = 288;
-const GRAVITY = 0.08;
-const JUMP_FORCE = -9;
+const GRAVITY = 0.06;
+const JUMP_FORCE = -7;
 const INITIAL_GAME_SPEED = 2;
 
 // === Game State ===
@@ -528,6 +533,75 @@ function setupInputHandlers() {
       gameState.downKeyPressed = false;
     }
   });
+
+  // Touch controls (for mobile)
+  if (IS_MOBILE) {
+    let touchStartY = 0;
+    let touchEndY = 0;
+    let touchStartTime = 0;
+    const MAX_TAP_DURATION = 300; // ms for considering it a tap
+
+    canvas.addEventListener(
+      "touchstart",
+      (e) => {
+        e.preventDefault();
+        touchStartY = e.touches[0].clientY;
+        touchStartTime = Date.now();
+
+        // Start game if needed
+        if (gameState.current === "start" || gameState.current === "gameover") {
+          resetGame();
+          return;
+        }
+      },
+      { passive: false }
+    );
+
+    canvas.addEventListener(
+      "touchmove",
+      (e) => {
+        e.preventDefault();
+        touchEndY = e.touches[0].clientY;
+
+        // Only consider it a swipe if we've moved enough vertically
+        if (
+          Math.abs(touchEndY - touchStartY) > MOBILE_JUMP_THRESHOLD &&
+          gameState.current === "playing"
+        ) {
+          // Swipe down for ducking
+          if (touchEndY > touchStartY) {
+            dino.duck(true);
+            gameState.downKeyPressed = true;
+          }
+        }
+      },
+      { passive: false }
+    );
+
+    canvas.addEventListener(
+      "touchend",
+      (e) => {
+        e.preventDefault();
+        const touchDuration = Date.now() - touchStartTime;
+
+        // Jump on quick tap (not a swipe)
+        if (
+          touchDuration < MAX_TAP_DURATION &&
+          Math.abs(touchEndY - touchStartY) < MOBILE_JUMP_THRESHOLD &&
+          gameState.current === "playing"
+        ) {
+          dino.jump();
+        }
+
+        // Release duck if it was pressed
+        if (gameState.downKeyPressed) {
+          dino.duck(false);
+          gameState.downKeyPressed = false;
+        }
+      },
+      { passive: false }
+    );
+  }
 }
 
 // === Main Game Loop ===
@@ -582,8 +656,30 @@ function gameLoop() {
 // === Initialization ===
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
-canvas.width = CANVAS_WIDTH;
-canvas.height = CANVAS_HEIGHT;
+
+function resizeCanvas() {
+  const container = document.getElementById("game-container");
+  const containerWidth = container.clientWidth;
+  const containerHeight = container.clientHeight;
+
+  // Maintain aspect ratio
+  const aspectRatio = CANVAS_WIDTH / CANVAS_HEIGHT;
+  let newWidth = containerWidth;
+  let newHeight = containerWidth / aspectRatio;
+
+  if (newHeight > containerHeight) {
+    newHeight = containerHeight;
+    newWidth = containerHeight * aspectRatio;
+  }
+
+  canvas.width = CANVAS_WIDTH;
+  canvas.height = CANVAS_HEIGHT;
+  canvas.style.width = `${newWidth}px`;
+  canvas.style.height = `${newHeight}px`;
+}
+
+window.addEventListener("resize", resizeCanvas);
+resizeCanvas();
 
 setupInputHandlers();
 assets.loadAll(gameLoop);
