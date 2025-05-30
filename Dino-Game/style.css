@@ -1,0 +1,13 @@
+body {
+  margin: 0;
+  overflow: hidden;
+  background: #f7f7f7;
+  font-family: "Jersey 15", sans-serif;
+}
+
+#gameCanvas {
+  background: white;
+  display: block;
+  margin: 20px auto;
+  border: 1px solid #ccc;
+}
