@@ -1,8 +1,8 @@
 // === Constants ===
 const CANVAS_WIDTH = 768;
 const CANVAS_HEIGHT = 288;
-const GRAVITY = 0.08;
-const JUMP_FORCE = -9;
+const GRAVITY = 0.06;
+const JUMP_FORCE = -7;
 const INITIAL_GAME_SPEED = 2;
 
 // === Game State ===
