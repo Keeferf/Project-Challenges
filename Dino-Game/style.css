@@ -36,6 +36,10 @@ body {
     transition: transform 0.3s ease;
   }
 
+  #game-container {
+    margin: 0 auto;
+  }
+
   .force-landscape {
     position: fixed;
     top: 0;

@@ -79,7 +79,7 @@ const assets = {
   },
   loadAll: function (callback) {
     let loadedCount = 0;
-    const imageValues = Object.values(this.images); // Get just the values we need
+    const imageValues = Object.values(this.images);
     const totalImages = imageValues.length;
 
     imageValues.forEach((imageObj) => {
@@ -162,15 +162,12 @@ const dino = {
       this.jumpPeak = true;
     }
 
-    // Ground collision
     const groundLevel = CANVAS_HEIGHT - 83;
     if (this.y > groundLevel) {
       this.y = groundLevel;
       this.isJumping = false;
       this.speedY = 0;
       this.jumpPeak = false;
-
-      // Only change animation if game is playing
       if (gameState.current === "playing") {
         this.currentAnim = gameState.downKeyPressed ? "duck" : "run";
       }
@@ -349,14 +346,12 @@ const obstacles = {
 
   update: function () {
     if (gameState.current === "playing") {
-      // Obstacle generation
       this.timer += gameState.speed;
       if (this.timer > this.nextTime) {
         this.generate();
         this.timer = 0;
       }
 
-      // Update active obstacles
       this.active.forEach((obstacle, index) => {
         obstacle.x -= gameState.speed;
 
@@ -395,7 +390,6 @@ const obstacles = {
           obstacle.frameCount = 0;
         }
       } else {
-        // Original drawing for ground obstacles
         ctx.drawImage(
           this[obstacle.type].img,
           obstacle.x,
@@ -413,8 +407,6 @@ const obstacles = {
       const obstTop = obstacle.y + this[obstacle.type].hitbox.yOffset;
       const obstRight = obstLeft + this[obstacle.type].hitbox.width;
       const obstBottom = obstTop + this[obstacle.type].hitbox.height;
-
-      // Use duckHeight if ducking, otherwise normal height
       const dinoHeight = dino.isDucking ? dino.duckHeight : dino.height;
       const dinoYOffset = dino.isDucking
         ? dino.normalHeight - dino.duckHeight
@@ -423,8 +415,8 @@ const obstacles = {
       if (
         dino.x < obstRight &&
         dino.x + dino.width > obstLeft &&
-        dino.y + dinoYOffset < obstBottom && // Adjusted for ducking
-        dino.y + dinoYOffset + dinoHeight > obstTop // Use dynamic height
+        dino.y + dinoYOffset < obstBottom &&
+        dino.y + dinoYOffset + dinoHeight > obstTop
       ) {
         gameOver();
       }
@@ -571,7 +563,7 @@ function setupInputHandlers() {
     }
   });
 
-  // Touch controls (for mobile)
+  // === Touch Controls (Mobile) ===
   if (IS_MOBILE) {
     let touchStartY = 0;
     let touchEndY = 0;
@@ -582,9 +574,7 @@ function setupInputHandlers() {
       (e) => {
         e.preventDefault();
         touchStartY = e.touches[0].clientY;
-        isSwipe = false; // Reset swipe flag on new touch
-
-        // Start game if needed
+        isSwipe = false;
         if (gameState.current === "start" || gameState.current === "gameover") {
           resetGame();
           return;
@@ -598,14 +588,9 @@ function setupInputHandlers() {
       (e) => {
         e.preventDefault();
         touchEndY = e.touches[0].clientY;
-
-        // Only consider it a swipe after significant movement
         if (Math.abs(touchEndY - touchStartY) > MOBILE_JUMP_THRESHOLD * 2) {
           isSwipe = true;
-
-          // Duck only on downward swipe
           if (gameState.current === "playing" && touchEndY > touchStartY) {
-            // Only if swiping down
             dino.duck(true);
             gameState.downKeyPressed = true;
           }
@@ -618,22 +603,16 @@ function setupInputHandlers() {
       "touchend",
       (e) => {
         e.preventDefault();
-
-        // Jump only if it wasn't a swipe
         if (gameState.current === "playing" && !isSwipe) {
           if (gameState.spaceKeyReleased) {
             dino.jump();
             gameState.spaceKeyReleased = false;
           }
         }
-
-        // Release duck if it was pressed
         if (gameState.downKeyPressed) {
           dino.duck(false);
           gameState.downKeyPressed = false;
         }
-
-        // Reset jump flag
         gameState.spaceKeyReleased = true;
       },
       { passive: false }
@@ -664,14 +643,10 @@ function gameLoop() {
     const elapsedSeconds = Math.floor(
       (Date.now() - gameState.startTime) / 1000
     );
-
-    // Only update score if it's changed
     if (elapsedSeconds > gameState.score) {
       gameState.score = elapsedSeconds;
       gameState.highScore = Math.max(gameState.score, gameState.highScore);
     }
-
-    // Increase speed every 10 seconds
     if (gameState.score > 0 && gameState.score % 3 === 0) {
       if (
         !gameState.lastSpeedIncrease ||
