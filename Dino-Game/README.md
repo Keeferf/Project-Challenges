@@ -18,6 +18,7 @@ A simple clone of the **Chrome Dono Game** built with **HTML5 Canvas** and **Jav
 - 1:11:39.67
 - 45:27.00
 - 1:43:15.52
+- 34:46.14
 
 ## Asset Credits
 
