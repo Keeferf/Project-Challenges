@@ -1,6 +1,6 @@
 # Dino Game (JavaScript Clone)
 
-A simple clone of the **Chrome Dono Game** built with **HTML5 Canvas** and **JavaScript**, featuring animations, dynamic difficulty, and responsive controls.
+A simple clone of the **Chrome Dono Game** built with **HTML5 Canvas** and **JavaScript**, featuring animations, dynamic difficulty, and responsive controls. This game works in both desktop and mobile browsers.
 
 Access the browser game here: [Dino Game](https://24hour-dino-game.vercel.app)
 
@@ -8,9 +8,10 @@ Access the browser game here: [Dino Game](https://24hour-dino-game.vercel.app)
 
 ## Features
 
-- **Game mechanics** (Press `Space` to jump & `Down Arrow` to duck).
+- **Game mechanics desktop** (Press `Space` to jump & `Down Arrow` to duck).
+- **Game mechanics mobile** (`Tap` to jump & `Swipe Down` to duck).
 - **Random obstacles** (Speed increases over time).
-- **Score tracking** (Increases as you avoid obstacles and time passes).
+- **Score tracking** (Increases time passes).
 - **Collision detection** (Game ends on hit).
 
 ## Current Time (Includes sourcing and creating assets)

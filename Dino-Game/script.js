@@ -10,6 +10,43 @@ const GRAVITY = 0.06;
 const JUMP_FORCE = -7;
 const INITIAL_GAME_SPEED = 2;
 
+// === Mobile Orientation ===
+const orientation = {
+  isPortrait: function () {
+    return window.innerHeight > window.innerWidth;
+  },
+  setupHandler: function () {
+    window.addEventListener("resize", this.checkOrientation.bind(this));
+    this.checkOrientation();
+  },
+  checkOrientation: function () {
+    if (IS_MOBILE) {
+      if (this.isPortrait()) {
+        document.body.classList.add("portrait");
+        document.body.classList.remove("landscape");
+        this.showOrientationWarning(true);
+      } else {
+        document.body.classList.add("landscape");
+        document.body.classList.remove("portrait");
+        this.showOrientationWarning(false);
+      }
+    }
+  },
+  showOrientationWarning: function (show) {
+    let warning = document.getElementById("orientation-warning");
+    if (!warning && show) {
+      warning = document.createElement("div");
+      warning.id = "orientation-warning";
+      warning.className = "force-landscape";
+      warning.innerHTML =
+        '<div class="landscape-warning">Please rotate your device to landscape mode to play</div>';
+      document.body.appendChild(warning);
+    } else if (warning && !show) {
+      warning.remove();
+    }
+  },
+};
+
 // === Game State ===
 const gameState = {
   current: "start",
@@ -538,15 +575,14 @@ function setupInputHandlers() {
   if (IS_MOBILE) {
     let touchStartY = 0;
     let touchEndY = 0;
-    let touchStartTime = 0;
-    const MAX_TAP_DURATION = 300; // ms for considering it a tap
+    let isSwipe = false;
 
     canvas.addEventListener(
       "touchstart",
       (e) => {
         e.preventDefault();
         touchStartY = e.touches[0].clientY;
-        touchStartTime = Date.now();
+        isSwipe = false; // Reset swipe flag on new touch
 
         // Start game if needed
         if (gameState.current === "start" || gameState.current === "gameover") {
@@ -563,13 +599,13 @@ function setupInputHandlers() {
         e.preventDefault();
         touchEndY = e.touches[0].clientY;
 
-        // Only consider it a swipe if we've moved enough vertically
-        if (
-          Math.abs(touchEndY - touchStartY) > MOBILE_JUMP_THRESHOLD &&
-          gameState.current === "playing"
-        ) {
-          // Swipe down for ducking
-          if (touchEndY > touchStartY) {
+        // Only consider it a swipe after significant movement
+        if (Math.abs(touchEndY - touchStartY) > MOBILE_JUMP_THRESHOLD * 2) {
+          isSwipe = true;
+
+          // Duck only on downward swipe
+          if (gameState.current === "playing" && touchEndY > touchStartY) {
+            // Only if swiping down
             dino.duck(true);
             gameState.downKeyPressed = true;
           }
@@ -582,15 +618,13 @@ function setupInputHandlers() {
       "touchend",
       (e) => {
         e.preventDefault();
-        const touchDuration = Date.now() - touchStartTime;
 
-        // Jump on quick tap (not a swipe)
-        if (
-          touchDuration < MAX_TAP_DURATION &&
-          Math.abs(touchEndY - touchStartY) < MOBILE_JUMP_THRESHOLD &&
-          gameState.current === "playing"
-        ) {
-          dino.jump();
+        // Jump only if it wasn't a swipe
+        if (gameState.current === "playing" && !isSwipe) {
+          if (gameState.spaceKeyReleased) {
+            dino.jump();
+            gameState.spaceKeyReleased = false;
+          }
         }
 
         // Release duck if it was pressed
@@ -598,6 +632,9 @@ function setupInputHandlers() {
           dino.duck(false);
           gameState.downKeyPressed = false;
         }
+
+        // Reset jump flag
+        gameState.spaceKeyReleased = true;
       },
       { passive: false }
     );
@@ -657,10 +694,19 @@ function gameLoop() {
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
+// Replace your existing resizeCanvas function with this:
 function resizeCanvas() {
   const container = document.getElementById("game-container");
-  const containerWidth = container.clientWidth;
-  const containerHeight = container.clientHeight;
+  let containerWidth, containerHeight;
+
+  if (IS_MOBILE && orientation.isPortrait()) {
+    // Use screen dimensions in landscape even if we're in portrait
+    containerWidth = window.screen.height;
+    containerHeight = window.screen.width;
+  } else {
+    containerWidth = container.clientWidth;
+    containerHeight = container.clientHeight;
+  }
 
   // Maintain aspect ratio
   const aspectRatio = CANVAS_WIDTH / CANVAS_HEIGHT;
@@ -678,8 +724,13 @@ function resizeCanvas() {
   canvas.style.height = `${newHeight}px`;
 }
 
+// Replace your existing initialization code with this:
 window.addEventListener("resize", resizeCanvas);
 resizeCanvas();
+
+if (IS_MOBILE) {
+  orientation.setupHandler();
+}
 
 setupInputHandlers();
 assets.loadAll(gameLoop);
