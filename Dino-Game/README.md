@@ -4,7 +4,9 @@ A simple clone of the **Chrome Dono Game** built with **HTML5 Canvas** and **Jav
 
 Access the browser game here: [Dino Game](https://24hour-dino-game.vercel.app)
 
-![Game Preview](assets/dino-startscreen.png)
+<div align="center">
+  <img src="assets/dino-startscreen.png" alt="Game Preview" />
+</div>
 
 ## Project Overview
 
