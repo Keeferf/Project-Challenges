@@ -561,7 +561,7 @@ function gameLoop() {
     }
 
     // Increase speed every 10 seconds
-    if (gameState.score > 0 && gameState.score % 10 === 0) {
+    if (gameState.score > 0 && gameState.score % 3 === 0) {
       if (
         !gameState.lastSpeedIncrease ||
         gameState.lastSpeedIncrease < gameState.score
