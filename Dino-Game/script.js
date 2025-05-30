@@ -432,7 +432,11 @@ const screens = {
     ctx.fillStyle = "#fff";
     ctx.font = "28px 'Jersey 15'";
     ctx.textAlign = "center";
-    ctx.fillText("Press SPACE to Start", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
+    ctx.fillText(
+      IS_MOBILE ? "TAP to Start" : "Press SPACE to Start",
+      CANVAS_WIDTH / 2,
+      CANVAS_HEIGHT / 2
+    );
     ctx.textAlign = "left";
   },
 
@@ -450,7 +454,7 @@ const screens = {
       CANVAS_HEIGHT / 2 + 10
     );
     ctx.fillText(
-      "Press SPACE to Restart",
+      IS_MOBILE ? "TAP to Restart" : "Press SPACE to Restart",
       CANVAS_WIDTH / 2,
       CANVAS_HEIGHT / 2 + 40
     );
