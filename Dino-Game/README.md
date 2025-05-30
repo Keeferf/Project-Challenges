@@ -23,6 +23,7 @@ Access the browser game here: [Dino Game](https://24hour-dino-game.vercel.app)
 - 1:43:15.52
 - 34:46.14
 - 13:38.80
+- 1:12:23.16
 
 ## Asset Credits
 
