@@ -17,7 +17,7 @@ body {
   max-width: 768px;
   height: 100%;
   max-height: 288px;
-  margin: 20px auto 0;
+  margin: 5px auto 0;
 }
 
 #gameCanvas {
@@ -37,6 +37,8 @@ body {
   }
 
   #game-container {
+    height: 100vh;
+    max-height: none;
     margin: 0 auto;
   }
 
