@@ -538,15 +538,14 @@ function setupInputHandlers() {
   if (IS_MOBILE) {
     let touchStartY = 0;
     let touchEndY = 0;
-    let touchStartTime = 0;
-    const MAX_TAP_DURATION = 300; // ms for considering it a tap
+    let isSwipe = false;
 
     canvas.addEventListener(
       "touchstart",
       (e) => {
         e.preventDefault();
         touchStartY = e.touches[0].clientY;
-        touchStartTime = Date.now();
+        isSwipe = false; // Reset swipe flag on new touch
 
         // Start game if needed
         if (gameState.current === "start" || gameState.current === "gameover") {
@@ -563,13 +562,13 @@ function setupInputHandlers() {
         e.preventDefault();
         touchEndY = e.touches[0].clientY;
 
-        // Only consider it a swipe if we've moved enough vertically
-        if (
-          Math.abs(touchEndY - touchStartY) > MOBILE_JUMP_THRESHOLD &&
-          gameState.current === "playing"
-        ) {
-          // Swipe down for ducking
-          if (touchEndY > touchStartY) {
+        // Only consider it a swipe after significant movement
+        if (Math.abs(touchEndY - touchStartY) > MOBILE_JUMP_THRESHOLD * 2) {
+          isSwipe = true;
+
+          // Duck only on downward swipe
+          if (gameState.current === "playing" && touchEndY > touchStartY) {
+            // Only if swiping down
             dino.duck(true);
             gameState.downKeyPressed = true;
           }
@@ -582,15 +581,13 @@ function setupInputHandlers() {
       "touchend",
       (e) => {
         e.preventDefault();
-        const touchDuration = Date.now() - touchStartTime;
 
-        // Jump on quick tap (not a swipe)
-        if (
-          touchDuration < MAX_TAP_DURATION &&
-          Math.abs(touchEndY - touchStartY) < MOBILE_JUMP_THRESHOLD &&
-          gameState.current === "playing"
-        ) {
-          dino.jump();
+        // Jump only if it wasn't a swipe
+        if (gameState.current === "playing" && !isSwipe) {
+          if (gameState.spaceKeyReleased) {
+            dino.jump();
+            gameState.spaceKeyReleased = false;
+          }
         }
 
         // Release duck if it was pressed
@@ -598,6 +595,9 @@ function setupInputHandlers() {
           dino.duck(false);
           gameState.downKeyPressed = false;
         }
+
+        // Reset jump flag
+        gameState.spaceKeyReleased = true;
       },
       { passive: false }
     );
