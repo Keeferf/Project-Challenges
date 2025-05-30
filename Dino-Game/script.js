@@ -30,6 +30,10 @@ const assets = {
     closeBgImg: { src: "assets/close-background.png", img: new Image() },
     boxObstacleImg: { src: "assets/box-obstacle.png", img: new Image() },
     logObstacleImg: { src: "assets/log-obstacle.png", img: new Image() },
+    flyingObstacleSheet: {
+      src: "assets/flying-obstacle-sheet.png",
+      img: new Image(),
+    },
   },
   loadAll: function (callback) {
     let loadedCount = 0;
@@ -71,6 +75,14 @@ const animations = {
     totalFrames: 7,
     frameDelay: 21,
   },
+  flyingObstacle: {
+    sheet: assets.images.flyingObstacleSheet.img,
+    frameWidth: 32,
+    frameHeight: 31,
+    spacing: 0,
+    totalFrames: 7,
+    frameDelay: 21,
+  },
 };
 
 // === Game Objects ===
@@ -87,7 +99,7 @@ const dino = {
   frameCount: 0,
   jumpPeak: false,
   normalHeight: 51,
-  duckHeight: 39,
+  duckHeight: 41,
   maxJumpHeight: 120,
 
   update: function () {
@@ -234,23 +246,57 @@ const obstacles = {
     minGap: 400,
     maxGap: 600,
   },
+  flying: {
+    img: assets.images.flyingObstacleSheet.img,
+    width: 32,
+    height: 32,
+    hitbox: {
+      xOffset: 0,
+      yOffset: 0,
+      width: 32,
+      height: 32,
+    },
+    minGap: 500,
+    maxGap: 700,
+    yVariation: 80,
+    minHeight: CANVAS_HEIGHT - 150,
+  },
   active: [],
   timer: 0,
   nextTime: 0,
 
   generate: function () {
-    const availableTypes = gameState.speed >= 2.5 ? ["box", "log"] : ["box"];
+    const availableTypes =
+      gameState.speed >= 3
+        ? ["box", "log", "flying"]
+        : gameState.speed >= 2.5
+          ? ["box", "log"]
+          : ["box"];
 
     const type =
       availableTypes[Math.floor(Math.random() * availableTypes.length)];
 
+    let yPos;
+    if (type === "flying") {
+      const shouldOverlap = Math.random() < 0.6;
+      if (shouldOverlap) {
+        yPos = CANVAS_HEIGHT - 83 - dino.height + 25;
+      } else {
+        yPos = this.flying.minHeight - Math.random() * this.flying.yVariation;
+      }
+    } else {
+      yPos = CANVAS_HEIGHT - 32 - this[type].height;
+    }
+
     const obstacle = {
       type: type,
       x: CANVAS_WIDTH,
-      y: CANVAS_HEIGHT - 32 - this[type].height,
+      y: yPos,
       width: this[type].width,
       height: this[type].height,
       passed: false,
+      currentFrame: 0,
+      frameCount: 0,
     };
 
     this.active.push(obstacle);
@@ -285,13 +331,37 @@ const obstacles = {
 
   draw: function (ctx) {
     this.active.forEach((obstacle) => {
-      ctx.drawImage(
-        this[obstacle.type].img,
-        obstacle.x,
-        obstacle.y,
-        obstacle.width,
-        obstacle.height
-      );
+      if (obstacle.type === "flying") {
+        const anim = animations.flyingObstacle;
+        const frameX = obstacle.currentFrame * anim.frameWidth;
+        ctx.drawImage(
+          anim.sheet,
+          frameX,
+          0,
+          anim.frameWidth,
+          anim.frameHeight,
+          obstacle.x,
+          obstacle.y,
+          obstacle.width,
+          obstacle.height
+        );
+
+        obstacle.frameCount++;
+        if (obstacle.frameCount >= anim.frameDelay) {
+          obstacle.currentFrame =
+            (obstacle.currentFrame + 1) % anim.totalFrames;
+          obstacle.frameCount = 0;
+        }
+      } else {
+        // Original drawing for ground obstacles
+        ctx.drawImage(
+          this[obstacle.type].img,
+          obstacle.x,
+          obstacle.y,
+          obstacle.width,
+          obstacle.height
+        );
+      }
     });
   },
 
@@ -302,12 +372,17 @@ const obstacles = {
       const obstRight = obstLeft + this[obstacle.type].hitbox.width;
       const obstBottom = obstTop + this[obstacle.type].hitbox.height;
 
-      // Original dino collision check remains the same
+      // Use duckHeight if ducking, otherwise normal height
+      const dinoHeight = dino.isDucking ? dino.duckHeight : dino.height;
+      const dinoYOffset = dino.isDucking
+        ? dino.normalHeight - dino.duckHeight
+        : 0;
+
       if (
         dino.x < obstRight &&
         dino.x + dino.width > obstLeft &&
-        dino.y < obstBottom &&
-        dino.y + dino.height > obstTop
+        dino.y + dinoYOffset < obstBottom && // Adjusted for ducking
+        dino.y + dinoYOffset + dinoHeight > obstTop // Use dynamic height
       ) {
         gameOver();
       }
@@ -352,7 +427,7 @@ const screens = {
     ctx.fillStyle = "#fff";
     ctx.font = "24px 'Jersey 15'";
     ctx.fillText(`Score: ${gameState.score}`, 20, 30);
-    ctx.fillText(`High: ${gameState.highScore}`, 20, 60);
+    ctx.fillText(`Highscore: ${gameState.highScore}`, 20, 60);
   },
 };
 
