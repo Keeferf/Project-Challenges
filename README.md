@@ -5,4 +5,3 @@ A collection of projects that I try to complete while recording my time spent on
 ## Projects
 
 - [Dino Game](./Dino-Game/README.md)
-- [Tetris](./Dino-Game/README.md)
