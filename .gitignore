@@ -1,2 +1,6 @@
-# # Ignore all PNGs inside Digital-Watermarking folder
+# Ignore all PNGs inside Digital-Watermarking folder
 /Digital-Watermarking/**/*.png
+
+# Ignore all JPG and JPEGs inside Digital-Watermarking folder
+/Digital-Watermarking/**/*.jpg
+/Digital-Watermarking/**/*.jpeg
