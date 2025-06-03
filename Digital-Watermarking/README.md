@@ -5,6 +5,8 @@ A Python CLI tool for embedding and extracting digital watermarks using format-s
 ## Total Time Spent (Including sourcing and creation of assets)
 
 - 1:47:50.05
+- 3:08:34.23
+- 2:50:12.56
 
 ## Format-Specific Implementations
 
