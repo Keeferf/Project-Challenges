@@ -1,25 +1,32 @@
-// Game Class
 class WordTypingGame {
   constructor() {
     // DOM elements
     this.gameContainer = document.getElementById("game-container");
     this.wordInput = document.getElementById("word-input");
     this.scoreElement = document.getElementById("score");
+    this.timerElement = document.getElementById("timer");
     this.startButton = document.getElementById("start-button");
     this.resetButton = document.getElementById("reset-button");
+    this.gameArea = document.getElementById("game-area");
 
     // Game state
     this.score = 0;
     this.gameActive = false;
-    this.words = [];
-    this.wordSpeed = 2.5;
-    this.wordInterval = 1800;
-    this.gameWidth = this.gameContainer.offsetWidth;
-    this.gameHeight = 800;
-    this.scoreAreaHeight = 50;
+    this.activeWords = [];
+    this.wordSpeed = 1.5;
+    this.spawnRate = 2000;
+    this.wordFontSize = 24;
+    this.dangerZoneHeight = 0;
+    this.maxDangerZone = 0;
+    this.dangerZoneIncrement = 10;
+    this.gameTime = 0; // in seconds
+    this.timerInterval = null;
 
-    // Word dictionary
-    this.wordDictionary = [
+    // Initialize dimensions
+    this.updateDimensions();
+
+    // Game settings
+    this.wordList = [
       "apple",
       "banana",
       "cherry",
@@ -39,190 +46,243 @@ class WordTypingGame {
       "strawberry",
       "tangerine",
       "watermelon",
-      "javascript",
-      "html",
-      "css",
-      "python",
-      "java",
-      "ruby",
-      "php",
-      "swift",
-      "react",
-      "angular",
-      "vue",
-      "node",
-      "express",
-      "mongodb",
-      "mysql",
+      "blueberry",
+      "blackberry",
+      "cantaloupe",
+      "coconut",
+      "dragonfruit",
+      "guava",
+      "jackfruit",
+      "lime",
+      "lychee",
+      "passionfruit",
+      "persimmon",
     ];
 
-    // Initialize event listeners
+    // Initialize
     this.initEventListeners();
+    this.setupGameArea();
+  }
+
+  updateDimensions() {
+    this.viewportWidth = window.innerWidth;
+    this.viewportHeight = window.innerHeight;
+    this.gameWidth = this.viewportWidth * 0.6;
+    this.gameHeight = this.viewportHeight * 0.7;
+    this.gameAreaHeight = this.gameHeight - 20;
+
+    this.gameArea.style.width = `${this.gameWidth}px`;
+    this.gameArea.style.height = `${this.gameHeight}px`;
+
+    this.wordFontSize = Math.max(16, Math.min(28, this.gameWidth * 0.04));
+  }
+
+  setupGameArea() {
+    this.dangerZone = document.createElement("div");
+    this.dangerZone.id = "danger-zone";
+    this.gameArea.appendChild(this.dangerZone);
+    this.updateDangerZone();
+  }
+
+  updateDangerZone() {
+    this.dangerZone.style.height = `${this.dangerZoneHeight}px`;
+    this.dangerZone.style.bottom = "0";
+  }
+
+  updateTimer() {
+    const minutes = Math.floor(this.gameTime / 60);
+    const seconds = this.gameTime % 60;
+    this.timerElement.textContent = `${minutes}:${seconds.toString().padStart(2, "0")}`;
   }
 
   initEventListeners() {
     this.startButton.addEventListener("click", () => this.startGame());
     this.resetButton.addEventListener("click", () => this.resetGame());
-    this.wordInput.addEventListener("keydown", (e) => this.handleInput(e));
+    this.wordInput.addEventListener("input", () => this.checkInput());
+    this.wordInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") this.wordInput.value = "";
+    });
+
     window.addEventListener("resize", () => {
-      this.gameWidth = this.gameContainer.offsetWidth;
-      this.gameHeight = this.gameContainer.offsetHeight;
+      this.updateDimensions();
+      this.activeWords.forEach((word) => {
+        word.element.style.fontSize = `${this.wordFontSize}px`;
+      });
     });
   }
 
   startGame() {
-    // Reset game state
     this.gameActive = true;
     this.score = 0;
+    this.gameTime = 0;
+    this.dangerZoneHeight = 0;
+    this.maxDangerZone = 0;
     this.scoreElement.textContent = this.score;
-    this.words = [];
-
-    // Clear only word elements, not the entire container
-    const wordElements = document.querySelectorAll(".word");
-    wordElements.forEach((el) => el.remove());
-
+    this.updateTimer();
+    this.activeWords = [];
     this.wordInput.value = "";
     this.wordInput.focus();
 
-    // UI changes
+    document.querySelectorAll(".word, .game-over").forEach((el) => el.remove());
+    this.updateDangerZone();
+
     this.startButton.style.display = "none";
     this.resetButton.style.display = "inline-block";
 
-    // Start word generation
-    this.wordGenerator = setInterval(
-      () => this.generateWord(),
-      this.wordInterval
+    // Start timer
+    this.timerInterval = setInterval(() => {
+      this.gameTime++;
+      this.updateTimer();
+    }, 1000);
+
+    this.wordSpawnInterval = setInterval(
+      () => this.spawnWord(),
+      this.spawnRate
     );
-
-    // Start game loop
-    this.gameLoop = setInterval(() => this.updateGame(), 30);
+    this.gameLoop = setInterval(() => this.updateGameState(), 30);
   }
 
-  resetGame() {
-    // Clear intervals
-    clearInterval(this.wordGenerator);
-    clearInterval(this.gameLoop);
-
-    // Reset UI
-    this.gameActive = false;
-
-    // Clear only word elements
-    const wordElements = document.querySelectorAll(".word");
-    wordElements.forEach((el) => el.remove());
-
-    this.wordInput.value = "";
-    this.startButton.style.display = "inline-block";
-    this.resetButton.style.display = "none";
-  }
-
-  handleInput(e) {
-    if (e.key === "Enter" && this.gameActive) {
-      const typedWord = this.wordInput.value.trim().toLowerCase();
-      this.wordInput.value = "";
-
-      let wordFound = false;
-      for (let i = 0; i < this.words.length; i++) {
-        if (this.words[i].text.toLowerCase() === typedWord) {
-          // Mark word as correct and remove after animation
-          this.words[i].element.classList.add("correct");
-          setTimeout(() => {
-            this.gameContainer.removeChild(this.words[i].element);
-            this.words.splice(i, 1);
-          }, 100);
-
-          this.score += 10;
-          this.scoreElement.textContent = this.score;
-          wordFound = true;
-          break;
-        }
-      }
-
-      if (!wordFound) {
-        // Penalty for wrong word
-        this.score = Math.max(0, this.score - 5);
-        this.scoreElement.textContent = this.score;
-        this.wordInput.classList.add("shake");
-        setTimeout(() => this.wordInput.classList.remove("shake"), 500);
-      }
-    }
-  }
-
-  generateWord() {
+  spawnWord() {
     if (!this.gameActive) return;
 
-    // Get random word
     const randomWord =
-      this.wordDictionary[
-        Math.floor(Math.random() * this.wordDictionary.length)
-      ];
-
-    // Create word element
+      this.wordList[Math.floor(Math.random() * this.wordList.length)];
     const wordElement = document.createElement("div");
     wordElement.className = "word";
     wordElement.textContent = randomWord;
+    wordElement.style.fontSize = `${this.wordFontSize}px`;
 
-    // Add to game container first to measure its width
-    this.gameContainer.appendChild(wordElement);
+    wordElement.style.visibility = "hidden";
+    wordElement.style.position = "absolute";
+    this.gameArea.appendChild(wordElement);
 
-    // Calculate maximum left position based on actual word width
     const wordWidth = wordElement.offsetWidth;
+    const wordHeight = wordElement.offsetHeight;
+
     const maxLeft = this.gameWidth - wordWidth;
+    const leftPos = Math.max(
+      0,
+      Math.min(Math.floor(Math.random() * maxLeft), maxLeft)
+    );
 
-    // Random horizontal position
-    const leftPos = Math.floor(Math.random() * maxLeft);
+    const minTop = this.dangerZoneHeight + wordHeight;
+    const maxTop = this.gameAreaHeight - wordHeight;
+    const topPos = Math.max(minTop, Math.min(this.scoreAreaHeight, maxTop));
+
     wordElement.style.left = `${leftPos}px`;
-    wordElement.style.top = `${this.scoreAreaHeight}px`; // Start below score area
+    wordElement.style.top = `${topPos}px`;
+    wordElement.style.visibility = "visible";
 
-    // Store word in array
-    this.words.push({
-      text: randomWord,
+    this.activeWords.push({
       element: wordElement,
-      y: 0, // Start at 0 (relative to play area)
+      text: randomWord,
+      y: topPos - this.scoreAreaHeight,
       x: leftPos,
+      width: wordWidth,
+      height: wordHeight,
     });
   }
 
-  updateGame() {
+  checkInput() {
     if (!this.gameActive) return;
 
-    // Move all words down
-    for (let i = 0; i < this.words.length; i++) {
-      const word = this.words[i];
-      word.y += this.wordSpeed;
-      word.element.style.top = `${word.y + this.scoreAreaHeight}px`; // Add score area offset
+    const currentInput = this.wordInput.value.trim().toLowerCase();
 
-      // Check if word reached bottom (using gameHeight which is 800)
-      if (word.y > this.gameHeight - word.element.offsetHeight) {
-        this.gameContainer.removeChild(word.element);
-        this.words.splice(i, 1);
-        i--;
+    for (let i = 0; i < this.activeWords.length; i++) {
+      const word = this.activeWords[i];
 
-        // Penalty for missed word
-        this.score = Math.max(0, this.score - 15);
+      if (word.text.toLowerCase() === currentInput) {
+        this.score += 10;
         this.scoreElement.textContent = this.score;
 
-        // Game over condition
-        if (this.score <= 0) {
-          this.gameOver();
-        }
+        word.element.classList.add("correct");
+        setTimeout(() => {
+          this.gameArea.removeChild(word.element);
+          this.activeWords.splice(i, 1);
+        }, 200);
+
+        this.wordInput.value = "";
+        return;
       }
     }
+  }
+
+  updateGameState() {
+    if (!this.gameActive) return;
+
+    for (let i = 0; i < this.activeWords.length; i++) {
+      const word = this.activeWords[i];
+      word.y += this.wordSpeed;
+
+      if (word.y + word.height >= this.gameAreaHeight - this.dangerZoneHeight) {
+        this.gameArea.removeChild(word.element);
+        this.activeWords.splice(i, 1);
+        i--;
+
+        this.dangerZoneHeight += this.dangerZoneIncrement;
+        this.maxDangerZone = Math.max(
+          this.maxDangerZone,
+          this.dangerZoneHeight
+        );
+        this.updateDangerZone();
+
+        if (this.dangerZoneHeight >= this.gameAreaHeight * 0.9) {
+          this.gameOver();
+        }
+      } else {
+        word.element.style.top = `${word.y + this.scoreAreaHeight}px`;
+      }
+    }
+
+    this.wordSpeed = 1.5 + Math.floor(this.score / 100) * 0.2;
+    this.spawnRate = Math.max(500, 2000 - Math.floor(this.score / 50) * 100);
   }
 
   gameOver() {
     this.gameActive = false;
-    clearInterval(this.wordGenerator);
+    clearInterval(this.wordSpawnInterval);
     clearInterval(this.gameLoop);
+    clearInterval(this.timerInterval);
 
-    // Show game over message
     const gameOverElement = document.createElement("div");
     gameOverElement.className = "game-over";
-    gameOverElement.textContent = "GAME OVER";
+    gameOverElement.innerHTML = `
+      GAME OVER<br>
+      <span style="font-size: ${this.wordFontSize}px">Score: ${this.score}</span><br>
+      <span style="font-size: ${this.wordFontSize}px">Time: ${this.formatTime(this.gameTime)}</span><br>
+      <span style="font-size: ${this.wordFontSize * 0.8}px">Lava reached ${Math.floor((this.maxDangerZone / this.gameAreaHeight) * 100)}%</span>
+    `;
     this.gameContainer.appendChild(gameOverElement);
+  }
+
+  formatTime(seconds) {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
+  }
+
+  resetGame() {
+    this.gameActive = false;
+    clearInterval(this.wordSpawnInterval);
+    clearInterval(this.gameLoop);
+    clearInterval(this.timerInterval);
+
+    this.score = 0;
+    this.gameTime = 0;
+    this.dangerZoneHeight = 0;
+    this.scoreElement.textContent = this.score;
+    this.updateTimer();
+    this.activeWords = [];
+    this.wordInput.value = "";
+
+    document.querySelectorAll(".word, .game-over").forEach((el) => el.remove());
+    this.updateDangerZone();
+
+    this.startButton.style.display = "inline-block";
+    this.resetButton.style.display = "none";
   }
 }
 
-// Initialize the game when the DOM is loaded
 document.addEventListener("DOMContentLoaded", () => {
   const game = new WordTypingGame();
 });

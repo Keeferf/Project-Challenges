@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>KeyDrop</title>
+    <title>KeyDrop - Lava Mode</title>
     <link rel="stylesheet" href="keydrop.css" />
     <link
       href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400;1,700&display=swap"
@@ -12,18 +12,22 @@
   </head>
   <body>
     <div id="game-container">
-      <div id="score-container">Score: <span id="score">0</span></div>
+      <div id="score-container">
+        <span id="score">0</span>
+        <span id="timer">0:00</span>
+      </div>
+      <div id="game-area"></div>
+      <div id="input-container">
+        <input
+          type="text"
+          id="word-input"
+          placeholder="Type the words here..."
+          autocomplete="off"
+        />
+      </div>
+      <button id="start-button">Start Game</button>
+      <button id="reset-button" style="display: none">Reset Game</button>
     </div>
-    <div id="input-container">
-      <input
-        type="text"
-        id="word-input"
-        placeholder="Type the words here..."
-        autocomplete="off"
-      />
-    </div>
-    <button id="start-button">Start Game</button>
-    <button id="reset-button" style="display: none">Reset Game</button>
 
     <script src="keydrop.js"></script>
   </body>
