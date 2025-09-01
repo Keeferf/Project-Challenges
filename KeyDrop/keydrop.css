@@ -95,6 +95,7 @@ body {
 #timer {
   display: flex;
   align-items: center;
+  font-family: monospace;
 }
 
 #score::before {
@@ -103,6 +104,7 @@ body {
 
 #timer::before {
   content: "Time: ";
+  margin-right: 5px;
 }
 
 #start-button,

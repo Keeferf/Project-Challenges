@@ -19,8 +19,11 @@ class WordTypingGame {
     this.dangerZoneHeight = 0;
     this.maxDangerZone = 0;
     this.dangerZoneIncrement = 10;
-    this.gameTime = 0; // in seconds
+    this.gameTime = 0;
+    this.startTime = 0;
     this.timerInterval = null;
+    this.wordCache = [];
+    this.isFetchingWords = false;
 
     // Initialize dimensions
     this.updateDimensions();
@@ -62,6 +65,56 @@ class WordTypingGame {
     // Initialize
     this.initEventListeners();
     this.setupGameArea();
+    this.preloadWords();
+  }
+
+  async preloadWords() {
+    try {
+      this.isFetchingWords = true;
+      // Fetch common English words with 4-8 letters
+      const response = await fetch(
+        `https://api.datamuse.com/words?sp=????,?????,??????,???????,????????&md=f&max=200`
+      );
+      const data = await response.json();
+
+      if (data && data.length > 0) {
+        // Filter to only include words with frequency data and good length
+        this.wordCache = data
+          .filter((item) => item.word && item.tags && item.tags.includes("f:1"))
+          .map((item) => item.word)
+          .filter((word) => word.length >= 4 && word.length <= 8);
+
+        // If we didn't get enough words, add fallback
+        if (this.wordCache.length < 50) {
+          this.wordCache = [...this.wordCache, ...this.fallbackWordList];
+        }
+      } else {
+        this.wordCache = [...this.fallbackWordList];
+      }
+    } catch (error) {
+      console.error("Failed to fetch words from Datamuse:", error);
+      this.wordCache = [...this.fallbackWordList];
+    } finally {
+      this.isFetchingWords = false;
+    }
+  }
+
+  async getRandomWord() {
+    // If we have words in cache, use them
+    if (this.wordCache.length > 0) {
+      return this.wordCache[Math.floor(Math.random() * this.wordCache.length)];
+    }
+
+    // If cache is empty but we're still fetching, wait a bit
+    if (this.isFetchingWords) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      return this.getRandomWord(); // Try again
+    }
+
+    // If all else fails, use fallback
+    return this.fallbackWordList[
+      Math.floor(Math.random() * this.fallbackWordList.length)
+    ];
   }
 
   updateDimensions() {
@@ -90,9 +143,19 @@ class WordTypingGame {
   }
 
   updateTimer() {
-    const minutes = Math.floor(this.gameTime / 60);
-    const seconds = this.gameTime % 60;
-    this.timerElement.textContent = `${minutes}:${seconds.toString().padStart(2, "0")}`;
+    const totalSeconds = this.gameTime / 1000;
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = Math.floor(totalSeconds % 60);
+    const milliseconds = Math.floor((this.gameTime % 1000) / 10); // Show 2-digit ms
+    this.timerElement.textContent = `${minutes}:${seconds.toString().padStart(2, "0")}.${milliseconds.toString().padStart(2, "0")}`;
+  }
+
+  updateGameTime(timestamp) {
+    if (!this.gameActive) return;
+
+    this.gameTime = timestamp - this.startTime;
+    this.updateTimer();
+    this.timerInterval = requestAnimationFrame(this.updateGameTime.bind(this));
   }
 
   initEventListeners() {
@@ -115,6 +178,7 @@ class WordTypingGame {
     this.gameActive = true;
     this.score = 0;
     this.gameTime = 0;
+    this.startTime = performance.now();
     this.dangerZoneHeight = 0;
     this.maxDangerZone = 0;
     this.scoreElement.textContent = this.score;
@@ -129,11 +193,9 @@ class WordTypingGame {
     this.startButton.style.display = "none";
     this.resetButton.style.display = "inline-block";
 
-    // Start timer
-    this.timerInterval = setInterval(() => {
-      this.gameTime++;
-      this.updateTimer();
-    }, 1000);
+    // Start high-precision timer
+    this.startTime = performance.now();
+    this.timerInterval = requestAnimationFrame(this.updateGameTime.bind(this));
 
     this.wordSpawnInterval = setInterval(
       () => this.spawnWord(),
@@ -142,41 +204,34 @@ class WordTypingGame {
     this.gameLoop = setInterval(() => this.updateGameState(), 30);
   }
 
-  spawnWord() {
+  async spawnWord() {
     if (!this.gameActive) return;
 
-    const randomWord =
-      this.wordList[Math.floor(Math.random() * this.wordList.length)];
+    const randomWord = await this.getRandomWord();
     const wordElement = document.createElement("div");
     wordElement.className = "word";
     wordElement.textContent = randomWord;
     wordElement.style.fontSize = `${this.wordFontSize}px`;
 
-    wordElement.style.visibility = "hidden";
+    // Add to DOM first to measure dimensions
     wordElement.style.position = "absolute";
     this.gameArea.appendChild(wordElement);
 
     const wordWidth = wordElement.offsetWidth;
     const wordHeight = wordElement.offsetHeight;
 
+    // Calculate spawn position
     const maxLeft = this.gameWidth - wordWidth;
-    const leftPos = Math.max(
-      0,
-      Math.min(Math.floor(Math.random() * maxLeft), maxLeft)
-    );
-
-    const minTop = this.dangerZoneHeight + wordHeight;
-    const maxTop = this.gameAreaHeight - wordHeight;
-    const topPos = Math.max(minTop, Math.min(this.scoreAreaHeight, maxTop));
+    const leftPos = Math.max(0, Math.floor(Math.random() * maxLeft));
+    const topPos = 0; // Start at the very top
 
     wordElement.style.left = `${leftPos}px`;
     wordElement.style.top = `${topPos}px`;
-    wordElement.style.visibility = "visible";
 
     this.activeWords.push({
       element: wordElement,
       text: randomWord,
-      y: topPos - this.scoreAreaHeight,
+      y: topPos, // Track absolute position
       x: leftPos,
       width: wordWidth,
       height: wordHeight,
@@ -212,37 +267,39 @@ class WordTypingGame {
 
     for (let i = 0; i < this.activeWords.length; i++) {
       const word = this.activeWords[i];
-      word.y += this.wordSpeed;
+      word.y += this.wordSpeed; // Move downward
+      word.element.style.top = `${word.y}px`; // Update position
 
-      if (word.y + word.height >= this.gameAreaHeight - this.dangerZoneHeight) {
-        this.gameArea.removeChild(word.element);
-        this.activeWords.splice(i, 1);
-        i--;
-
-        this.dangerZoneHeight += this.dangerZoneIncrement;
-        this.maxDangerZone = Math.max(
-          this.maxDangerZone,
-          this.dangerZoneHeight
-        );
-        this.updateDangerZone();
-
-        if (this.dangerZoneHeight >= this.gameAreaHeight * 0.9) {
-          this.gameOver();
-        }
-      } else {
-        word.element.style.top = `${word.y + this.scoreAreaHeight}px`;
+      // Check if word reached danger zone
+      if (word.y + word.height > this.gameAreaHeight - this.dangerZoneHeight) {
+        this.handleMissedWord(i);
       }
     }
 
+    // Increase difficulty
     this.wordSpeed = 1.5 + Math.floor(this.score / 100) * 0.2;
     this.spawnRate = Math.max(500, 2000 - Math.floor(this.score / 50) * 100);
+  }
+
+  handleMissedWord(index) {
+    const word = this.activeWords[index];
+    this.gameArea.removeChild(word.element);
+    this.activeWords.splice(index, 1);
+
+    this.dangerZoneHeight += this.dangerZoneIncrement;
+    this.maxDangerZone = Math.max(this.maxDangerZone, this.dangerZoneHeight);
+    this.updateDangerZone();
+
+    if (this.dangerZoneHeight >= this.gameAreaHeight * 0.9) {
+      this.gameOver();
+    }
   }
 
   gameOver() {
     this.gameActive = false;
     clearInterval(this.wordSpawnInterval);
     clearInterval(this.gameLoop);
-    clearInterval(this.timerInterval);
+    cancelAnimationFrame(this.timerInterval);
 
     const gameOverElement = document.createElement("div");
     gameOverElement.className = "game-over";
@@ -255,17 +312,19 @@ class WordTypingGame {
     this.gameContainer.appendChild(gameOverElement);
   }
 
-  formatTime(seconds) {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
+  formatTime(milliseconds) {
+    const totalSeconds = milliseconds / 1000;
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = Math.floor(totalSeconds % 60);
+    const ms = Math.floor((milliseconds % 1000) / 10); // 2-digit milliseconds
+    return `${minutes}:${seconds.toString().padStart(2, "0")}.${ms.toString().padStart(2, "0")}`;
   }
 
   resetGame() {
     this.gameActive = false;
     clearInterval(this.wordSpawnInterval);
     clearInterval(this.gameLoop);
-    clearInterval(this.timerInterval);
+    cancelAnimationFrame(this.timerInterval);
 
     this.score = 0;
     this.gameTime = 0;
